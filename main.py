@@ -7,7 +7,7 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.firefox.options import Options
 import pandas as pd
 import time
-
+from pymongo import MongoClient
 
 # Path to geckodriver
 geckodriver_path = r"C:\Tools\geckodriver\geckodriver.exe"
@@ -71,6 +71,7 @@ for i in range(0,ScrollNumber):
 
 #start scraping here
 
+listings = []
 ListingName = []
 Price = []
 NewPrice = []
@@ -118,8 +119,32 @@ for result in results:
     link = result.find_element(By.XPATH, './/a[@class="listing-item-link"]').get_attribute('href')
     Link.append(link)
 
+    # Creating dict for the current listing and appending it to the listings list
+    listing_info = {
+        "Name": listing_name,
+        "Price": price,
+        "NewPrice": new_price,
+        "OldPrice": old_price,
+        "Size": size,
+        "Time": time,
+        "LastBump": last_bump,
+        "Link": link
+    }
+
+    listings.append(listing_info)
+
+# Data frame for display purposes
 ItemDataFrame = pd.DataFrame(zip(ListingName, Price, NewPrice, OldPrice, Size, Time, LastBump, Link), columns = ['Name', 'Price', 'NewPrice', 'OldPrice', 'Size', 'Time', 'LastBump', 'Link'])
 
+# HTML file for display purposes
 html = ItemDataFrame.to_html()
 with open('dataframe.html', 'w', encoding='utf-8') as f:
     f.write(html)
+
+# Storing the data in mongodb using pymongo
+client = MongoClient('localhost', 27017)
+db = client.grailed_data
+
+for listing in listings:
+    db.data.insert_one(listing)
+
