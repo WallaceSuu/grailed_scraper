@@ -5,7 +5,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.firefox.options import Options
-import pandas as pd
 import time
 from pymongo import MongoClient
 
@@ -132,14 +131,6 @@ for result in results:
     }
 
     listings.append(listing_info)
-
-# Data frame for display purposes
-ItemDataFrame = pd.DataFrame(zip(ListingName, Price, NewPrice, OldPrice, Size, Time, LastBump, Link), columns = ['Name', 'Price', 'NewPrice', 'OldPrice', 'Size', 'Time', 'LastBump', 'Link'])
-
-# HTML file for display purposes
-html = ItemDataFrame.to_html()
-with open('dataframe.html', 'w', encoding='utf-8') as f:
-    f.write(html)
 
 # Storing the data in mongodb using pymongo
 client = MongoClient('localhost', 27017)
