@@ -66,7 +66,7 @@ for i in range(0,ScrollNumber):
     Results=Results+results
     driver.execute_script("window.scrollTo(0,document.body.scrollHeight)")
     print("scraped so far: " + str(len(Results)))
-    time.sleep(2)
+    time.sleep(1.5)
 
 #start scraping here
 
@@ -130,12 +130,27 @@ for result in results:
         "Link": link
     }
 
+
     listings.append(listing_info)
 
 # Storing the data in mongodb using pymongo
 client = MongoClient('localhost', 27017)
 db = client.grailed_data
 
-for listing in listings:
-    db.data.insert_one(listing)
+#making sure no duplicates are inserted into the db
+
+def remove_duplicates(newListings):
+    cleaned_list = []
+    insertedListings = db.data.find()
+    for listing in newListings:
+        if listing not in insertedListings:
+            cleaned_list.append(listing)
+        else:
+            print("Listing omitted!")
+    return cleaned_list
+
+cleaned_listings = remove_duplicates(listings)
+
+#inserting data into the mongoDB database
+db.data.insert_many(cleaned_listings)
 
