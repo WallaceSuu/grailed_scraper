@@ -10,33 +10,28 @@ from pymongo import MongoClient
 
 # Path to geckodriver
 geckodriver_path = r"C:\Tools\geckodriver\geckodriver.exe"
-
 options = Options()
 options.headless = True
 
 # Initialize the WebDriver with the correct Service
 service = Service(executable_path=geckodriver_path)
+
 # Initialize the WebDriver (ensure geckodriver is in your PATH or provide the path to it)
 driver = webdriver.Firefox(service=service, options=options)
 
-# URL to open
+# starting URL being opened
 start_url = 'https://www.grailed.com/shop/8-r3aVtP4Q'
-
-# Open the URL
 driver.get(start_url)
-
 timeout=30
 
-#loading the page so that 'feed-item's can be seen
+#loading the page until 'feed-item's can be seen
 try:
     WebDriverWait(driver, timeout).until(
         EC.visibility_of_element_located((By.XPATH, "//div[@class='feed-item']"))
     )
-
 except TimeoutException:
     print("Timed out, page was not able to be loaded")
     driver.quit()
-
 
 # how many results show up
 results = driver.find_elements(By.XPATH, '//div[@class="FiltersInstantSearch"]//div[@class="feed-item"]')
@@ -55,7 +50,8 @@ else:
 print(int(total_listings/200))
 
 # Number of Scrolls, add one in case the function rounds down
-#ScrollNumber=round(listing_number_element/40)+1
+
+# change this number to scrape more data when needed
 ScrollNumber=3
 
 Results = []
