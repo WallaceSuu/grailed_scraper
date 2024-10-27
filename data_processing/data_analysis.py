@@ -3,6 +3,7 @@ from pymongo import MongoClient
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.ensemble import RandomForestClassifier
 import numpy as np
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, accuracy_score
 
 def summationofprices(category):
@@ -79,49 +80,67 @@ listings_df['name'] = (
 
 #TfidfVectorizer to transform listing_name into numerical features, removing unimportant terms
 vectorizer = TfidfVectorizer(stop_words='english', max_features=1000)
-x_train = vectorizer.fit_transform(trainingdata_df['name']) #using training data 'name' as the x train
-y_train = trainingdata_df['category'] #labels are not numeric, scikit-learn will automatically encode
+#split the data into training and testing sets (80% train, 20% test)
+X_train, X_test, y_train, y_test = train_test_split(
+    trainingdata_df['name'],
+    trainingdata_df['category'],
+    test_size=0.2,
+    random_state=42
+)
 
-#random forest classifer
+#fit the vectorizer on the training data only
+X_train_vect = vectorizer.fit_transform(X_train)
+
+#transform the test data using the same vectorizer
+X_test_vect = vectorizer.transform(X_test)
+
+#create and train the Random Forest classifier
 model = RandomForestClassifier()
-model.fit(x_train, y_train)
+model.fit(X_train_vect, y_train)
 
-#transform listing name to match format for prediction
-X_test = vectorizer.transform(listings_df['name'])
+#make predictions on the testing set
+y_pred = model.predict(X_test_vect)
 
-#predict categories for listingname_df
-y_pred = model.predict(X_test)
-listings_df['predicted_category'] = y_pred
+#evaluate the model using classification report
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print(classification_report(y_test, y_pred))
 
-#insertting predicted categories into the actual mongodb database
+#predicting categories for listings_df using trained model above
+X_listings_vect = vectorizer.transform(listings_df['name'])  # Use the same vectorizer for listings
+y_pred_listings = model.predict(X_listings_vect)
+
+#insert predicted categories into the actual MongoDB database
 for index, row in listings_df.iterrows():
-
     #using _id as the unique identifier for each document
     filter_criteria = {"_id": row['_id']}
+    update_operation = {"$set": {"predicted_category": y_pred_listings[index]}}
 
-    #update operation
-    update_operation = {"$set": {"predicted_category": row['predicted_category']}}
-
-    #updating document in mongodb
+    #updating documents in MongoDB
     collection.update_one(filter_criteria, update_operation)
 
-print("predicted_category have been updated in the mongodb collection.")
+print("predicted_category have been updated in the MongoDB collection.")
 
+#pulling predicted_category from mongodb
+retrievedData = list(collection.find({}, {"_id": 1, "predicted_category": 1}))
+
+#create a mapping from _id to predicted_category
+predicted_mapping = {doc['_id']: doc['predicted_category'] for doc in retrievedData}
+
+#update listings_df with the predicted_category
+listings_df['predicted_category'] = listings_df['_id'].map(predicted_mapping)
+
+#export to HTML file (for viewing purposes)
 html_string = listings_df.to_html(index=False)  # Convert DataFrame to HTML, without index column
 
-# Save to HTML file
+#save to HTML file
 with open('dataframe.html', 'w') as file:
     file.write(html_string)
 
 print("DataFrame exported to 'dataframe.html'")
 
 #calculating statistics for various stats such as average price
-
-inputcategory = "bottoms"
+inputcategory = "accessories"
 totalprice, numelements = summationofprices(inputcategory)
-print("The average price of", numelements ,inputcategory,"is:", round(totalprice/numelements, 2), " dollars!")
-
-total_documents = collection.count_documents({})
-print(f"Total documents in collection: {total_documents}")
+print("The average price of", numelements, inputcategory, "is:", round(totalprice / numelements, 2), "dollars!")
 
 client.close()
