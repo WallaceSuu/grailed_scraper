@@ -20,7 +20,7 @@ service = Service(executable_path=geckodriver_path)
 driver = webdriver.Firefox(service=service, options=options)
 
 # starting URL being opened
-start_url = 'https://www.grailed.com/shop/yswa-3w-gw'
+start_url = 'https://www.grailed.com/shop/Yv0IBVCnIw'
 driver.get(start_url)
 timeout=30
 
@@ -47,12 +47,10 @@ if listing_number_elements:
 else:
     print("failed to grab total listing number")
 
-print(int(total_listings/200))
-
 # Number of Scrolls, add one in case the function rounds down
 
 # change this number to scrape more data when needed
-ScrollNumber=3
+ScrollNumber=10
 
 Results = []
 
@@ -62,7 +60,7 @@ for i in range(0,ScrollNumber):
     Results=Results+results
     driver.execute_script("window.scrollTo(0,document.body.scrollHeight)")
     print("scraped so far: " + str(len(Results)))
-    time.sleep(1.5)
+    time.sleep(1)
 
 #start scraping here
 
@@ -76,7 +74,7 @@ Time = []
 LastBump = []
 Link = []
 
-for result in results:
+for result in Results:
     listing_name = result.find_element(By.XPATH, './/p[@class="ListingMetadata-module__title___Rsj55"]').text
     ListingName.append(listing_name)
 
@@ -132,6 +130,8 @@ for result in results:
 # Storing the data in mongodb using pymongo
 client = MongoClient('localhost', 27017)
 db = client.grailed_data
+# deleting collection if it already exists
+db.data.drop()
 
 #making sure no duplicates are inserted into the db
 
@@ -147,7 +147,15 @@ def remove_duplicates(newListings):
 
 cleaned_listings = remove_duplicates(listings)
 
-#inserting data into the mongoDB database
-db.data.insert_many(cleaned_listings)
+print("LENGTH OF CLEANED LISTINGS:",len(cleaned_listings))
+
+def insert_in_batches(collection, data, batchsize):
+    for i in range(0, len(data), batchsize):
+        batch = data[i: i + batchsize] #creating the batch from data[i] to data[i+batchsize]
+        collection.insert_many(batch)
+        print(f"Inserted batch from {i} to {i + len(batch) - 1}")
+
+insert_in_batches(db.data, cleaned_listings, 1000)
+
 #closing the connection
 client.close()

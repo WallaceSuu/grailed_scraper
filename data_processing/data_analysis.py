@@ -106,7 +106,6 @@ for index, row in listings_df.iterrows():
     collection.update_one(filter_criteria, update_operation)
 
 print("predicted_category have been updated in the mongodb collection.")
-client.close()
 
 html_string = listings_df.to_html(index=False)  # Convert DataFrame to HTML, without index column
 
@@ -118,7 +117,11 @@ print("DataFrame exported to 'dataframe.html'")
 
 #calculating statistics for various stats such as average price
 
-totalprice, numelements = summationofprices('tops')
+inputcategory = "bottoms"
+totalprice, numelements = summationofprices(inputcategory)
+print("The average price of", numelements ,inputcategory,"is:", round(totalprice/numelements, 2), " dollars!")
 
-print("listingsprices exported to 'listingsprices.html'")
-print("The average price of bottoms is:", totalprice/numelements, " dollars!")
+total_documents = collection.count_documents({})
+print(f"Total documents in collection: {total_documents}")
+
+client.close()
