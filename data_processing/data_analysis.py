@@ -1,38 +1,76 @@
-from pymongo import MongoClient
 import pandas as pd
-from sklearn.model_selection import train_test_split
+from pymongo import MongoClient
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, accuracy_score
 
-# Setting up MongoDB
-client = MongoClient('localhost', 27017)
-db = client.grailed_data
+try:
+    uri = "mongodb://localhost:27017"
+    client = MongoClient(uri)
 
-#grabbing the csv file exported via mongoDB
-df = pd.read_csv('../grailed_data.data.csv', encoding = "latin-1")
-df = df.fillna(0)
+    database = client["grailed_data"]
+    collection = database["data"]
+    training_collection = database["category_training_data"]
 
-#we need to filter the data so that the newest price will always be displayed if it exists
-df['Price'] = df['NewPrice'].where(df['NewPrice'].notna(), df['Price']) 
+    #retrival code in here
+    returnedData = collection.distinct("Name")
+    training_data = list(training_collection.find({}, {"name": 1, "category": 1}))  # Retrieves all documents with name and category
 
+    #create dataframes
+    listingname_df = pd.DataFrame(returnedData, columns=["listing_name"])
 
-#removing columns that won't be used, such as NewPrice and OldPrice after the previous operation is done (might need to change later)
-X = df.drop(columns=['_id', 'Price', 'NewPrice', 'OldPrice', 'LastBump', 'Link'])
-X.fillna(0) #filling all the NaN values
+    # Extract names and categories from training_data and create DataFrame
+    training_name = [doc['name'] for doc in training_data]
+    training_category = [doc['category'] for doc in training_data]
 
-print(X)
+    # Create DataFrame with both lists
+    trainingdata_df = pd.DataFrame({
+        'name': training_name,
+        'category': training_category
+    })
 
-# NEED TO PERFORM ONE-HOT ENCODING OR LABEL ENCODING
-# THIS WILL CHANGE THE CATEGORIES OF "NAME", "SIZE", "TIME" TO NUMERICAL VALES THAT CAN BE USED IN MACHINE LEARNING
+    #end retrival code in here
+    client.close()
 
+except Exception as e:
+    raise Exception(
+        "The following error occurred: ", e)
 
+#training data to categorize data
+#begin analysis for name/categories
 
-#y is the price as we are trying to predict the price based on the characters entered
-y = df['Price']
+#cleaning data by converting to all lowercase and removing any non relevant characters
+trainingdata_df['name'] = (
+    trainingdata_df['name']
+    .str.lower()
+    .str.replace(r'[^a-z0-9\s]', '', regex=True)
+)
+listingname_df['listing_name'] = (
+    listingname_df['listing_name']
+    .str.lower()
+    .str.replace(r'[^a-z0-9\s]', '', regex=True)
+)
 
-#training inputs (x) and outputs(y)
-#in this case, inputs would be size/name and output would be price
-#X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=53, test_size:0.2)
+#TfidfVectorizer to transform listing_name into numerical features, removing unimportant terms
+vectorizer = TfidfVectorizer(stop_words='english', max_features=1000)
+x_train = vectorizer.fit_transform(trainingdata_df['name']) #using training data 'name' as the x train
+y_train = trainingdata_df['category'] #labels are not numeric, scikit-learn will automatically encode
 
+#random forest classifer
+model = RandomForestClassifier()
+model.fit(x_train, y_train)
 
+#transform listing name to match format for prediction
+X_test = vectorizer.transform(listingname_df['listing_name'])
 
+#predict categories for listingname_df
+y_pred = model.predict(X_test)
+listingname_df['predicted_category'] = y_pred
 
+html_string = listingname_df.to_html(index=False)  # Convert DataFrame to HTML, without index column
 
+# Save to HTML file
+with open('dataframe.html', 'w') as file:
+    file.write(html_string)
+
+print("DataFrame exported to 'dataframe.html'")

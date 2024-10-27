@@ -20,7 +20,7 @@ service = Service(executable_path=geckodriver_path)
 driver = webdriver.Firefox(service=service, options=options)
 
 # starting URL being opened
-start_url = 'https://www.grailed.com/shop/8-r3aVtP4Q'
+start_url = 'https://www.grailed.com/shop/yswa-3w-gw'
 driver.get(start_url)
 timeout=30
 
@@ -149,4 +149,5 @@ cleaned_listings = remove_duplicates(listings)
 
 #inserting data into the mongoDB database
 db.data.insert_many(cleaned_listings)
-
+#closing the connection
+client.close()
