@@ -136,7 +136,7 @@ predicted_mapping = {doc['_id']: doc['predicted_category'] for doc in retrievedD
 listings_df['predicted_category'] = listings_df['_id'].map(predicted_mapping)
 
 #export to HTML file (for viewing purposes)
-html_string = listings_df.to_html(index=False)  # Convert DataFrame to HTML, without index column
+html_string = listings_df.to_html(index=False)  #convert DataFrame to HTML, without index column
 
 #save to HTML file
 with open('dataframe.html', 'w') as file:
