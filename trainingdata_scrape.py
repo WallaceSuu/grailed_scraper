@@ -129,18 +129,28 @@ accessories_names = [
 
 training_data = []
 
+num_tops, num_bottoms, num_outerwear, num_footwear, num_accessories, currTotal = 0, 0, 0, 0, 0, 0
+
 for _ in range(training_entries):
-    category = random.choice(categories)  # Randomly select a category
-    if category == 'tops':
+    currTotal += 1
+    category = random.choice(categories)  #randomly select a category
+    #the and statement is to make sure a somewhat-even distribution is being made accross all categories
+    #this makes it so that the training data is not overly biased
+    if category == 'tops' and num_tops <= currTotal/len(categories):
         name = random.choice(tops_names)
-    elif category == 'bottoms':
+        num_tops += 1
+    elif category == 'bottoms' and num_bottoms <= currTotal/len(categories):
         name = random.choice(bottoms_names)
-    elif category == 'outerwear':
+        num_bottoms += 1
+    elif category == 'outerwear' and num_outerwear <= currTotal/len(categories):
         name = random.choice(outerwear_names)
-    elif category == 'footwear':
+        num_outerwear += 1
+    elif category == 'footwear' and num_footwear <= currTotal/len(categories):
         name = random.choice(footwear_names)
-    elif category == 'accessories':
+        num_footwear += 1
+    elif category == 'accessories' and num_accessories <= currTotal/len(categories):
         name = random.choice(accessories_names)
+        num_accessories += 1
     # Append the entry to the training_data list
     training_data.append({"name": name.lower(), "category": category.lower()})
 
@@ -150,7 +160,7 @@ def insert_in_batches(collection, data, batchsize):
         collection.insert_many(batch)
         print(f"Inserted batch from {i} to {i + len(batch) - 1}")
 
-insert_in_batches(collection, training_data, 1000)
+insert_in_batches(collection, training_data, 100)
 
 client.close()
 
