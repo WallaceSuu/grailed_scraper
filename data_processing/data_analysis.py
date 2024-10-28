@@ -4,7 +4,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.ensemble import RandomForestClassifier
 import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report, accuracy_score
+from sklearn.metrics import classification_report, accuracy_score, confusion_matrix, ConfusionMatrixDisplay
+import matplotlib.pyplot as plt
 
 def summationofprices(category):
     prices = listings_df[listings_df['predicted_category'] == category]['price']
@@ -104,6 +105,11 @@ y_pred = model.predict(X_test_vect)
 #evaluate the model using classification report
 print("Accuracy:", accuracy_score(y_test, y_pred))
 print(classification_report(y_test, y_pred))
+confusion_mtrx = confusion_matrix(y_test, y_pred, labels=model.classes_)
+disp = ConfusionMatrixDisplay(confusion_matrix=confusion_mtrx, display_labels=model.classes_)
+disp.plot(cmap=plt.cm.Blues)
+plt.title('Confusion Matrix')
+plt.show()
 
 #predicting categories for listings_df using trained model above
 X_listings_vect = vectorizer.transform(listings_df['name'])  # Use the same vectorizer for listings
